@@ -2,7 +2,7 @@
 
 This is a simple repository of tools and toolsets accumulated over the years.
 
-Some of them I built myself and am very open to share it for better people to make it faster and more efficent.
+Some of them I built myself and am very open to share it for better people to make it faster and more efficient.
 
 ## RotoLayerQC
 
