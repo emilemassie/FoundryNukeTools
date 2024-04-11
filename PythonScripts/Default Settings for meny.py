@@ -1,3 +1,14 @@
+
+# Adding these lines to your meny.py will change your default settings for certain nodes
+
+# The formulas goes as follow :
+# nuke.knobDefault('<node class name>.<node knob name>', "<value>")
+
+# To see a node class name, press i on a node to have its info popup. there you'll be able to see the Node Class.
+
+# Here are the ones I use most of the time:
+
+
 import nuke
 
 # set default copy node setting to A BBox 
