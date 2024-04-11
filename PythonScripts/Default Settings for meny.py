@@ -4,7 +4,7 @@
 # The formulas goes as follow :
 # nuke.knobDefault('<node class name>.<node knob name>', "<value>")
 
-# To see a node class name, press i on a node to have its info popup. there you'll be able to see the Node Class.
+# To see a node class name, press i on a node to have its info popup. There you'll be able to see the Node Class.
 
 # Here are the ones I use most of the time:
 
@@ -24,6 +24,7 @@ nuke.knobDefault('MotionBlur3D.shutteroffset', "centered")
 
 # Set default roto to b-spline
 nuke.knobDefault('Roto.toolbox','createBSpline')
+
 # Set default paint node settings
 nuke.knobDefault('RotoPaint.toolbox','createBSpline')
 nuke.knobDefault('RotoPaint.toolbox','smear')
