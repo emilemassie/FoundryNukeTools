@@ -1,16 +1,15 @@
 set cut_paste_input [stack 0]
-version 13.0 v3
 push $cut_paste_input
 Group {
  name ROTO_LAYER_QC
- tile_color 0xf7ffff
+ tile_color 0x5500ff
  note_font "Verdana Bold"
  note_font_color 0xffffffff
  selected true
- xpos -739
- ypos -431
+ xpos -248
+ ypos -281
  addUserKnob {20 ControlMenu l "THE ONE AND ONLY CONTROL"}
- addUserKnob {22 MakeLayers l "<p style=\"margin:0 auto;\"><br>GRAB SELECTED ROTO NODE<br>" T "import nuke, nukescripts, copy\nfrom random import randint\n\n\nLayerMaker = nuke.thisNode()\n\n\ndef ClearSelection():\n    if len(nuke.selectedNodes()):\n        for i in nuke.selectedNodes():\n            i\['selected'].setValue(False)\n\n\ndef ClearKnobs():\n    for i in LayerMaker.knobs():\n        if i.startswith('Color_'):\n            LayerMaker.removeKnob(LayerMaker.knobs()\[str(i)])\n\n\nclass PXO_ROTO_LAYER_QC(nukescripts.PythonPanel):\n\n\n    def __init__(self):\n        nukescripts.PythonPanel.__init__(self, 'PXO ROTO LAYER MAKER')\n        \n        with nuke.root():\n            self.RotoNodes = nuke.selectedNodes()\[::-1]\n\n\n        \n    def clearNukeSelection(self):\n        with LayerMaker:\n            for i in nuke.allNodes():\n                i.setSelected(False)\n\n\n    def BuildUiList(self):\n\n\n        index = 0\n        self.OrderedLayers = \[]\n\n\n        self.addKnob(nuke.Text_Knob('TEXT', 'Depth           Type        Layer name', ' '))\n\n\n        for node in self.RotoNodes:\n        \n            self.LayerName = node\['name'].getValue()\n\n\n            print('\\nGetting layer :' + self.LayerName)\n            self.depth = nuke.Int_Knob(str(index)+'_depth_'+self.LayerName, '')\n            self.depth.setValue(index+1)\n            self.depth.clearFlag(nuke.ENDLINE)\n\n\n\n\n            self.type = nuke.Enumeration_Knob(str(index)+'_type_'+self.LayerName, '', \['set', 'prop', 'char'])\n            self.type.clearFlag(nuke.STARTLINE)\n\n\n            self.name = nuke.String_Knob(str(index)+'_name_'+self.LayerName, '')\n            self.name.setValue(self.LayerName)\n            self.name.clearFlag(nuke.STARTLINE)\n            self.name.setFlag(nuke.ENDLINE)\n\n\n            \n            # If node is propeerly named, get the proper info\n            if self.LayerName.startswith('_'):\n\n\n                self.name.setValue('_'.join(self.LayerName.split('_')\[3:]))\n                self.type.setValue(self.LayerName.split('_')\[2])\n                self.depth.setValue(int(self.LayerName.split('_')\[1]))\n\n\n\n            #add all knobs\n            \n            self.addKnob(self.depth)  \n            self.addKnob(self.type)\n            self.addKnob(self.name)\n\n\n\n            self.NodeDict = \{\n            'name': self.name,\n            'depth': self.depth,\n            'type': self.type,\n            'node': node,\n            'index' : index\}\n\n\n            #self.list = \[node, self.depth, self.type, self.name, index]\n\n\n            self.OrderedLayers.append(self.NodeDict)\n            index+=1\n\n\n        print (self.OrderedLayers)\n        self.space = nuke.Text_Knob('space', '')\n        self.addKnob(self.space)\n\n\n    def checkSelection(self):\n\n\n        if self.RotoNodes == \[] or self.RotoNodes == \[LayerMaker]:\n            nuke.message('Seams like nothing is selected...')\n            return False\n        else:\n            nodeNames = \[n.name() for n in self.RotoNodes]\n            if any(LayerMaker.name() in name for name in nodeNames):\n                del self.RotoNodes\[nodeNames.index(LayerMaker.name())]\n            return True\n\n\n    def CleanAndReset(self):\n        self.oldPlate = LayerMaker.input(0)\n        for i in range(0,LayerMaker.inputs()):\n            LayerMaker.setInput(i, None)\n        with LayerMaker:\n            allMaster = \[ x for x in nuke.allNodes('Group') if 'MASTER' in x.name()]\n            for n in nuke.allNodes(filter='Input', group=LayerMaker):\n                nuke.delete(n)\n            for node in allMaster:\n                if node.name() != 'MASTER':\n                    nuke.delete(node)\n\n\n        self.connectionList = \[]\n        for connectedNode in LayerMaker.dependent():\n            for i in range(0,connectedNode.maxInputs()):\n                if connectedNode.input(i):\n                    if connectedNode.input(i).name() == LayerMaker.name():\n                        connectedNode.setInput(i, None)\n                        self.connectionList.append(\[connectedNode.name(), i])    \n\n\n    def CreateLayer(self):\n        ClearKnobs()\n        self.CleanAndReset()\n        MasterNode = LayerMaker.node('MASTER')\n        \n\n\n        # CREATE NEW PLATE INPUT AND RECONNECT IT\n        with LayerMaker:\n            PlateNode = nuke.createNode('Input', inpanel=False)\n            PlateNode\['name'].setValue('PLATE')\n            PlateNode.setXYpos( nuke.toNode('PlateDot').xpos(), nuke.toNode('PlateDot').ypos()-100)\n            nuke.toNode('PlateDot').setInput(0, PlateNode)\n            LayerMaker.setInput(0, self.oldPlate)\n\n\n        # CREATE INPUTS AND CONNECT THEM TO THE NODES\n        for layer in self.OrderedLayers:\n            with LayerMaker:\n                MasterNode\['EdgeColor'].setValue(randint(255,4294967295)) # set random color to the master before copy\n                inputNode = nuke.createNode('Input',inpanel=False)\n                inputNode\['name'].setValue(layer\['name'].getValue())\n\n\n            self.clearNukeSelection()\n            MasterNode.setSelected(True)\n\n\n            with LayerMaker:\n                nukescripts.node_copypaste()\n\n\n            NewMaster = LayerMaker.selectedNode()\n            self.clearNukeSelection()\n            NewMaster.setInput(0,inputNode)\n\n\n            \n\n\n            with LayerMaker:\n                nuke.toNode('MASTER_MERGE').setInput(layer\['index']+10, NewMaster)\n                nuke.toNode('COLOR_MERGE').setInput(layer\['index']+10, NewMaster)\n                nuke.toNode('EDGE_MERGE').setInput(layer\['index']+10, NewMaster)\n                \n            FullName = \"%04d\" % layer\['depth'].getValue()+'_' + layer\['type'].value()+'_'+layer\['name'].getValue()\n\n\n            nuke.Layer(\"_\"+FullName,\[\"_\"+FullName+\".alpha\"]) ##### CREATING THE ACTUAL LAYER HERE\n\n\n            master_shuffle = NewMaster.node('MASTER_SHUFFLE')\n            master_shuffle\['out'].setValue(\"_\"+FullName)\n\n\n            with nuke.root():\n                LayerMaker.setInput(layer\['index']+1, nuke.toNode(layer\['node'].name()))\n                layer\['node']\['name'].setValue('_'+FullName)\n                print(layer\['node']\['name'].getValue() + '   -------------->   ' + FullName)\n\n\n                linkedknob = nuke.Link_Knob(\"Color_\" + FullName, FullName)\n                linkedknob.setLink(LayerMaker.name() + '.' + NewMaster.name() + '.EdgeColor')                \n                LayerMaker.addKnob(linkedknob)\n        \n        # RECONNECT ALL THE NODES THAT WHERE CONNECTED TO THE ROTO QC\n        for node in self.connectionList:\n            nuke.toNode(node\[0]).setInput(node\[1], LayerMaker) \n\n\n\nroto_layer_qc = PXO_ROTO_LAYER_QC()\n\n\nif roto_layer_qc.checkSelection():               \n    \n    roto_layer_qc.setMinimumSize(650,80+len(nuke.selectedNodes())*25)\n    roto_layer_qc.BuildUiList()\n    if roto_layer_qc.showModalDialog():\n        print('\\n\\nCREATING LAYERS ...\\n\\n')\n        roto_layer_qc.CreateLayer()" +STARTLINE}
+ addUserKnob {22 MakeLayers l "<p style=\"margin:0 auto;\"><br>GRAB SELECTED ROTO NODE<br>" T "import nuke, nukescripts, copy\nfrom random import randint\n\nLayerMaker = nuke.thisNode()\n\ndef ClearSelection():\n    if len(nuke.selectedNodes()):\n        for i in nuke.selectedNodes():\n            i\['selected'].setValue(False)\n\ndef ClearKnobs():\n    for i in LayerMaker.knobs():\n        if i.startswith('Color_'):\n            LayerMaker.removeKnob(LayerMaker.knobs()\[str(i)])\n\nclass PXO_ROTO_LAYER_QC(nukescripts.PythonPanel):\n    def __init__(self):\n        nukescripts.PythonPanel.__init__(self, 'ROTO LAYER MAKER')\n        \n        with nuke.root():\n            self.RotoNodes = nuke.selectedNodes()\[::-1]\n        \n    def clearNukeSelection(self):\n        with LayerMaker:\n            for i in nuke.allNodes():\n                i.setSelected(False)\n\n    def BuildUiList(self):\n\n        index = 0\n        self.OrderedLayers = \[]\n\n        self.addKnob(nuke.Text_Knob('TEXT', 'Depth           Type        Layer name', ' '))\n\n        for node in self.RotoNodes:\n        \n            self.LayerName = node\['name'].getValue()\n\n            # print('\\nGetting layer :' + self.LayerName)\n            \n            self.depth = nuke.Int_Knob(str(index)+'_depth_'+self.LayerName, '')\n            self.depth.setValue(index+1)\n            self.depth.clearFlag(nuke.ENDLINE)\n\n            self.type = nuke.Enumeration_Knob(str(index)+'_type_'+self.LayerName, '', \['set', 'prop', 'char'])\n            self.type.clearFlag(nuke.STARTLINE)\n\n            self.name = nuke.String_Knob(str(index)+'_name_'+self.LayerName, '')\n            self.name.setValue(self.LayerName)\n            self.name.clearFlag(nuke.STARTLINE)\n            self.name.setFlag(nuke.ENDLINE)\n            \n            # If node is propeerly named, get the proper info\n            if self.LayerName.startswith('_'):\n\n                self.name.setValue('_'.join(self.LayerName.split('_')\[3:]))\n                self.type.setValue(self.LayerName.split('_')\[2])\n                self.depth.setValue(int(self.LayerName.split('_')\[1]))\n\n            #add all knobs\n            \n            self.addKnob(self.depth)  \n            self.addKnob(self.type)\n            self.addKnob(self.name)\n\n            self.NodeDict = \{\n            'name': self.name,\n            'depth': self.depth,\n            'type': self.type,\n            'node': node,\n            'index' : index\}\n\n            self.OrderedLayers.append(self.NodeDict)\n            index+=1\n\n        # print (self.OrderedLayers)\n        \n        self.space = nuke.Text_Knob('space', '')\n        self.addKnob(self.space)\n\n\n    def checkSelection(self):\n\n\n        if self.RotoNodes == \[] or self.RotoNodes == \[LayerMaker]:\n            nuke.message('Seams like nothing is selected...')\n            return False\n        else:\n            nodeNames = \[n.name() for n in self.RotoNodes]\n            if any(LayerMaker.name() in name for name in nodeNames):\n                del self.RotoNodes\[nodeNames.index(LayerMaker.name())]\n            return True\n\n\n    def CleanAndReset(self):\n        self.oldPlate = LayerMaker.input(0)\n        for i in range(0,LayerMaker.inputs()):\n            LayerMaker.setInput(i, None)\n        with LayerMaker:\n            allMaster = \[ x for x in nuke.allNodes('Group') if 'MASTER' in x.name()]\n            for n in nuke.allNodes(filter='Input', group=LayerMaker):\n                nuke.delete(n)\n            for node in allMaster:\n                if node.name() != 'MASTER':\n                    nuke.delete(node)\n\n\n        self.connectionList = \[]\n        for connectedNode in LayerMaker.dependent():\n            for i in range(0,connectedNode.maxInputs()):\n                if connectedNode.input(i):\n                    if connectedNode.input(i).name() == LayerMaker.name():\n                        connectedNode.setInput(i, None)\n                        self.connectionList.append(\[connectedNode.name(), i])    \n\n\n    def CreateLayer(self):\n        ClearKnobs()\n        self.CleanAndReset()\n        MasterNode = LayerMaker.node('MASTER')\n\n        # CREATE NEW PLATE INPUT AND RECONNECT IT\n        with LayerMaker:\n            PlateNode = nuke.createNode('Input', inpanel=False)\n            PlateNode\['name'].setValue('PLATE')\n            PlateNode.setXYpos( nuke.toNode('PlateDot').xpos(), nuke.toNode('PlateDot').ypos()-100)\n            nuke.toNode('PlateDot').setInput(0, PlateNode)\n            LayerMaker.setInput(0, self.oldPlate)\n\n        # CREATE INPUTS AND CONNECT THEM TO THE NODES\n        for layer in self.OrderedLayers:\n            with LayerMaker:\n                MasterNode\['EdgeColor'].setValue(randint(255,4294967295)) # set random color to the master before copy\n                inputNode = nuke.createNode('Input',inpanel=False)\n                inputNode\['name'].setValue(layer\['name'].getValue())\n\n            self.clearNukeSelection()\n            MasterNode.setSelected(True)\n\n            with LayerMaker:\n                nukescripts.node_copypaste()\n\n            NewMaster = LayerMaker.selectedNode()\n            self.clearNukeSelection()\n            NewMaster.setInput(0,inputNode)\n\n            with LayerMaker:\n                nuke.toNode('MASTER_MERGE').setInput(layer\['index']+10, NewMaster)\n                nuke.toNode('COLOR_MERGE').setInput(layer\['index']+10, NewMaster)\n                nuke.toNode('EDGE_MERGE').setInput(layer\['index']+10, NewMaster)\n                \n            FullName = \"%04d\" % layer\['depth'].getValue()+'_' + layer\['type'].value()+'_'+layer\['name'].getValue()\n\n            nuke.Layer(\"_\"+FullName,\[\"_\"+FullName+\".alpha\"]) ##### CREATING THE ACTUAL LAYER HERE\n\n            master_shuffle = NewMaster.node('MASTER_SHUFFLE')\n            master_shuffle\['out'].setValue(\"_\"+FullName)\n\n            with nuke.root():\n                LayerMaker.setInput(layer\['index']+1, nuke.toNode(layer\['node'].name()))\n                layer\['node']\['name'].setValue('_'+FullName)\n                \n                # print(layer\['node']\['name'].getValue() + '   -------------->   ' + FullName)\n\n                linkedknob = nuke.Link_Knob(\"Color_\" + FullName, FullName)\n                linkedknob.setLink(LayerMaker.name() + '.' + NewMaster.name() + '.EdgeColor')                \n                LayerMaker.addKnob(linkedknob)\n        \n        # RECONNECT ALL THE NODES THAT WHERE CONNECTED TO THE ROTO QC\n        for node in self.connectionList:\n            nuke.toNode(node\[0]).setInput(node\[1], LayerMaker) \n\nroto_layer_qc = PXO_ROTO_LAYER_QC()\n\nif roto_layer_qc.checkSelection():               \n    \n    roto_layer_qc.setMinimumSize(650,80+len(nuke.selectedNodes())*25)\n    roto_layer_qc.BuildUiList()\n    if roto_layer_qc.showModalDialog():\n        #print('\\n\\nCREATING LAYERS ...\\n\\n')\n        roto_layer_qc.CreateLayer()" +STARTLINE}
  addUserKnob {26 ""}
  addUserKnob {41 Edgemix l "Edges Opacity :" T EDGE_OPACITY.mix}
  addUserKnob {41 colorOp l "Color Opacity :" T COLOR_OPACITY.mix}
@@ -66,25 +65,25 @@ add_layer {_0001_set_CAR_A _0001_set_CAR_A.red _0001_set_CAR_A.green _0001_set_C
    xpos 434
    ypos 474
   }
-set N8c0efc00 [stack 0]
+set N26c1dc00 [stack 0]
   Dot {
    name Dot8
    xpos -446
    ypos 474
   }
-set N8c0ef800 [stack 0]
+set N1a8de000 [stack 0]
   Dot {
    name Dot9
    xpos -446
    ypos 666
   }
-set N8c0ef400 [stack 0]
+set N1a8de400 [stack 0]
   Dot {
    name Dot12
    xpos -446
    ypos 858
   }
-set N8c0ef000 [stack 0]
+set N1a8de800 [stack 0]
   Grade {
    channels alpha
    whitepoint 1e-05
@@ -100,13 +99,13 @@ set N8c0ef000 [stack 0]
    xpos -920
    ypos 1143
   }
-set N8c0ee800 [stack 0]
+set N1a8df000 [stack 0]
   Dot {
    name Dot14
    xpos -886
    ypos 1242
   }
-push $N8c0ee800
+push $N1a8df000
   Dilate {
    channels alpha
    size {{parent.Dilate3.size*-1}}
@@ -129,7 +128,7 @@ push $N8c0ee800
    xpos 620
    ypos -513
   }
-set N8c0ed800 [stack 0]
+set N2c3f2000 [stack 0]
   Dot {
    name Dot19
    xpos -2206
@@ -140,19 +139,19 @@ set N8c0ed800 [stack 0]
    xpos -2206
    ypos 570
   }
-set N8c0ed000 [stack 0]
+set N2c3f2800 [stack 0]
   Dot {
    name Dot21
    xpos -2206
    ypos 1050
   }
-set N8c0ecc00 [stack 0]
+set N2c3f2c00 [stack 0]
   Dot {
    name Dot22
    xpos -2206
    ypos 1242
   }
-push $N8c0ef000
+push $N1a8de800
   Dot {
    name Dot13
    xpos -666
@@ -174,7 +173,7 @@ push $N8c0ef000
    xpos -920
    ypos 951
   }
-set N8c0a7800 [stack 0]
+set N2c3f3c00 [stack 0]
   Dilate {
    channels alpha
    size 1
@@ -182,7 +181,7 @@ set N8c0a7800 [stack 0]
    xpos -1140
    ypos 945
   }
-push $N8c0a7800
+push $N2c3f3c00
   Dot {
    name Dot15
    xpos -886
@@ -196,14 +195,14 @@ push $N8c0a7800
    xpos -1140
    ypos 1047
   }
-push $N8c0ecc00
-push $N8c0ef400
+push $N2c3f2c00
+push $N1a8de400
   Dot {
    name Dot20
    xpos -666
    ypos 666
   }
-set N8c0a6800 [stack 0]
+set N217d4c00 [stack 0]
   Grade {
    channels alpha
    blackpoint 0.99999
@@ -212,7 +211,7 @@ set N8c0a6800 [stack 0]
    xpos -700
    ypos 753
   }
-push $N8c0a6800
+push $N217d4c00
   Grade {
    channels alpha
    whitepoint 0
@@ -229,7 +228,7 @@ push $N8c0a6800
    xpos -920
    ypos 759
   }
-push $N8c0ed000
+push $N2c3f2800
   Dot {
    name Dot24
    xpos -1986
@@ -240,7 +239,7 @@ push $N8c0ed000
    xpos -2020
    ypos 753
   }
-push $N8c0ef800
+push $N1a8de000
   Remove {
    operation keep
    channels alpha
@@ -281,8 +280,8 @@ push $N8c0ef800
    xpos -1766
    ypos 1530
   }
-push $N8c0efc00
-push $N8c0ed800
+push $N26c1dc00
+push $N2c3f2000
   Copy {
    inputs 2
    from0 rgba.alpha
@@ -297,7 +296,7 @@ push $N8c0ed800
    xpos 620
    ypos 1431
   }
-push $N8c0efc00
+push $N26c1dc00
 add_layer {COLOR COLOR.red COLOR.green COLOR.blue COLOR.alpha}
   ShuffleCopy {
    inputs 2
@@ -347,13 +346,13 @@ add_layer {EDGE EDGE.red EDGE.green EDGE.blue EDGE.alpha}
   xpos 1754
   ypos 1722
  }
-set N8c039800 [stack 0]
+set N15bef800 [stack 0]
  Dot {
   name Dot1
   xpos 1754
   ypos 1914
  }
-set N8c039400 [stack 0]
+set N15befc00 [stack 0]
  Merge2 {
   inputs 2
   mix 0.5
@@ -376,7 +375,7 @@ set N8c039400 [stack 0]
   xpos 1500
   ypos 663
  }
-push $N8c039400
+push $N15befc00
  Dot {
   name Dot6
   xpos 1754
@@ -406,7 +405,7 @@ push $N8c039400
   xpos 434
   ypos 1434
  }
-set N8bfdf400 [stack 0]
+set N1a925800 [stack 0]
  Invert {
   name Invert1
   xpos 620
@@ -433,7 +432,7 @@ set N8bfdf400 [stack 0]
   xpos 840
   ypos 1623
  }
-push $N8c039800
+push $N15bef800
  Merge2 {
   inputs 2
   mix 0.5
@@ -446,7 +445,7 @@ push $N8c039800
   xpos 874
   ypos 1914
  }
-push $N8bfdf400
+push $N1a925800
 add_layer {_COMPOSITE_ _COMPOSITE_.red _COMPOSITE_.green _COMPOSITE_.blue _COMPOSITE_.alpha _COMPOSITE_.R _COMPOSITE_.G _COMPOSITE_.B _COMPOSITE_.A}
  ShuffleCopy {
   inputs 2
@@ -492,7 +491,7 @@ add_layer {_EDGE_QC_ _EDGE_QC_.red _EDGE_QC_.green _EDGE_QC_.blue _EDGE_QC_.alph
   xpos 400
   ypos 2193
  }
-set N8bfdcc00 [stack 0]
+set N2a518000 [stack 0]
  Remove {
   operation keep
   channels rgba
@@ -502,7 +501,7 @@ set N8bfdcc00 [stack 0]
   xpos 400
   ypos 2295
  }
-push $N8bfdcc00
+push $N2a518000
  Dot {
   name Dot17
   xpos 214
