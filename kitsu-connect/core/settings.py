@@ -20,7 +20,14 @@ try:
             self.setWindowTitle("Kitsu Connect - Settings")
             # Load the UI file directly
             ui_file = os.path.join(folder_path, "ui", 'settings.ui')
-            self.settings_json = os.path.join(folder_path,'settings.json')
+            home = os.path.expanduser("~")
+
+            self.settings_json = os.path.join(home,'.nuke','kitsu-connect','settings.json')
+
+            if not os.path.exists(self.settings_json):
+                os.makedirs(os.path.dirname(self.settings_json))
+                with open(self.settings_json, 'w') as file:
+                    file.write('{"Kitsu API adress": "", "Username": "", "Password": ""}')
             loader = QUiLoader()
             self.ui = loader.load(ui_file, self)
             self.ui.save_settings_button.clicked.connect(self.save_settings)
