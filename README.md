@@ -4,9 +4,9 @@ Welcome to the repository of various tools and toolsets I've gathered over the y
 
 ## RotoLayerQC
 
-Ever been in the roto and paint QC world? I've developed this QC tool during my time at Pixomondo after numerous discussions and experiences in this space. It's become a reliable group node sent across vendors and departments worldwide.
+Have you ever worked in the roto and paint QC world? I developed this QC tool during my time as a Paint & Roto Artist. After countless discussions and hands-on experience, the tool evolved, and new functionalities were added. It's now a reliable group node that's shared across vendors and departments worldwide.
 
-Primarily, this tool is designed to showcase edge QC and perform basic premultiplication overlays. It's also aligned with a naming convention compatible for extraction as depth/type/matte.
+This tool is primarily designed to assist with edge quality control and perform basic premultiplication overlays. It's also aligned with a naming convention that's compatible with extraction workflows, including depth, type, and matte passes.
 
 ![RotoLayerQC Image](https://user-images.githubusercontent.com/17770267/169212592-386c4d5b-edb4-4c1a-ac30-5128d7af8c42.png)
 
